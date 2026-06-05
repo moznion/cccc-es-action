@@ -1,0 +1,117 @@
+name: cccc-es
+description: >-
+  Install the cccc-es complexity analyzer from a GitHub release, and optionally
+  run it as a Cognitive/Cyclomatic complexity gate.
+author: moznion
+branding:
+  icon: activity
+  color: purple
+
+inputs:
+  version:
+    description: >-
+      Release tag to install (e.g. "v0.1.0"), or "latest" to resolve the most
+      recent release.
+    required: false
+    default: latest
+  repository:
+    description: Repository to fetch the cccc-es release from.
+    required: false
+    default: moznion/cccc
+  github-token:
+    description: >-
+      Token used to query the GitHub API (avoids rate limits when resolving
+      "latest" and downloading assets).
+    required: false
+    default: ${{ github.token }}
+
+  # --- Analysis (only runs when `path` is set) ---
+  path:
+    description: >-
+      Files or directories to analyze (whitespace-separated). When empty, the
+      action only installs the binary and adds it to PATH.
+    required: false
+    default: ""
+  table:
+    description: Print a human-readable table instead of JSON.
+    required: false
+    default: "false"
+  ext:
+    description: Comma-separated file extensions to include (overrides the default set).
+    required: false
+    default: ""
+  max-cognitive:
+    description: Fail if any function's cognitive complexity exceeds this value.
+    required: false
+    default: ""
+  max-cyclomatic:
+    description: Fail if any function's cyclomatic complexity exceeds this value.
+    required: false
+    default: ""
+  min:
+    description: Only report functions whose cognitive or cyclomatic complexity is >= N.
+    required: false
+    default: ""
+  top-cognitive:
+    description: Show only the N most cognitively-complex functions across all files.
+    required: false
+    default: ""
+  top-cyclomatic:
+    description: Show only the N most cyclomatically-complex functions across all files.
+    required: false
+    default: ""
+  no-ignore:
+    description: Do not respect .gitignore / ignore files when walking directories.
+    required: false
+    default: "false"
+  jobs:
+    description: Number of files to analyze in parallel (defaults to logical CPU count).
+    required: false
+    default: ""
+  args:
+    description: Extra raw arguments appended verbatim to the cccc-es invocation.
+    required: false
+    default: ""
+  output-file:
+    description: If set, also write cccc-es output to this file (gate exit code preserved).
+    required: false
+    default: ""
+
+outputs:
+  version:
+    description: The release tag that was installed.
+    value: ${{ steps.install.outputs.version }}
+  bin:
+    description: Absolute path to the installed cccc-es binary.
+    value: ${{ steps.install.outputs.bin }}
+
+runs:
+  using: composite
+  steps:
+    - name: Install cccc-es
+      id: install
+      shell: bash
+      env:
+        INPUT_VERSION: ${{ inputs.version }}
+        INPUT_REPOSITORY: ${{ inputs.repository }}
+        GH_TOKEN: ${{ inputs.github-token }}
+      run: bash "$GITHUB_ACTION_PATH/scripts/install.sh"
+
+    - name: Run cccc-es
+      if: inputs.path != ''
+      shell: bash
+      env:
+        BIN: ${{ steps.install.outputs.bin }}
+        INPUT_PATH: ${{ inputs.path }}
+        INPUT_TABLE: ${{ inputs.table }}
+        INPUT_EXT: ${{ inputs.ext }}
+        INPUT_MAX_COGNITIVE: ${{ inputs.max-cognitive }}
+        INPUT_MAX_CYCLOMATIC: ${{ inputs.max-cyclomatic }}
+        INPUT_MIN: ${{ inputs.min }}
+        INPUT_TOP_COGNITIVE: ${{ inputs.top-cognitive }}
+        INPUT_TOP_CYCLOMATIC: ${{ inputs.top-cyclomatic }}
+        INPUT_NO_IGNORE: ${{ inputs.no-ignore }}
+        INPUT_JOBS: ${{ inputs.jobs }}
+        INPUT_ARGS: ${{ inputs.args }}
+        INPUT_OUTPUT_FILE: ${{ inputs.output-file }}
+      run: bash "$GITHUB_ACTION_PATH/scripts/run.sh"

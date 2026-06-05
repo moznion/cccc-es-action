@@ -23,16 +23,20 @@ case "$RUNNER_OS-$RUNNER_ARCH" in
     exit 1 ;;
 esac
 
+# Authenticate every github.com / api.github.com request when a token is
+# available. This avoids the unauthenticated rate limit, which GitHub enforces
+# on shared CI egress IPs by returning 404 (not 403) for release-asset
+# downloads — the symptom that breaks installs from runners.
+auth=()
+if [ -n "${GH_TOKEN:-}" ]; then
+  auth=(-H "Authorization: Bearer $GH_TOKEN")
+fi
+
 # Resolve the release tag.
 tag="$INPUT_VERSION"
 if [ -z "$tag" ] || [ "$tag" = latest ]; then
   api="https://api.github.com/repos/$repo/releases/latest"
-  if [ -n "${GH_TOKEN:-}" ]; then
-    body=$(curl -fsSL -H "Authorization: Bearer $GH_TOKEN" \
-      -H "X-GitHub-Api-Version: 2022-11-28" "$api")
-  else
-    body=$(curl -fsSL "$api")
-  fi
+  body=$(curl -fsSL "${auth[@]}" -H "X-GitHub-Api-Version: 2022-11-28" "$api")
   tag=$(printf '%s' "$body" | grep -m1 '"tag_name"' \
     | sed -E 's/.*"tag_name"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/')
 fi
@@ -46,18 +50,22 @@ case "$RUNNER_OS" in
   *)       archive_ext=tar.gz; binname=cccc-es ;;
 esac
 
-archive="cccc-es-$tag-$target.$archive_ext"
+# The checksum asset replaces the archive extension with ".sha256" (e.g.
+# cccc-es-<tag>-<target>.sha256), it does not append to the full archive name.
+stem="cccc-es-$tag-$target"
+archive="$stem.$archive_ext"
+sha_file="$stem.sha256"
 base="https://github.com/$repo/releases/download/$tag"
 workdir="$RUNNER_TEMP/cccc-es"
 mkdir -p "$workdir"
 cd "$workdir"
 
 echo "Downloading $base/$archive"
-curl -fsSL -o "$archive" "$base/$archive"
-curl -fsSL -o "$archive.sha256" "$base/$archive.sha256"
+curl -fsSL "${auth[@]}" -o "$archive" "$base/$archive"
+curl -fsSL "${auth[@]}" -o "$sha_file" "$base/$sha_file"
 
 # Verify the SHA-256 checksum.
-expected=$(awk '{print $1}' "$archive.sha256")
+expected=$(awk '{print $1}' "$sha_file")
 if command -v sha256sum >/dev/null 2>&1; then
   actual=$(sha256sum "$archive" | awk '{print $1}')
 else

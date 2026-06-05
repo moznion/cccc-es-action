@@ -76,8 +76,16 @@ if [ "$expected" != "$actual" ]; then
   exit 1
 fi
 
-# Extract: bsdtar (Windows) handles zip; GNU tar auto-detects gzip.
-tar -xf "$archive"
+# Extract. The Windows runner's bash uses GNU tar, which cannot read zip, so
+# unpack zips with PowerShell's Expand-Archive (always present on Windows).
+# GNU tar auto-detects gzip for the .tar.gz archives on Linux/macOS.
+case "$archive_ext" in
+  zip)
+    powershell -NoProfile -NonInteractive -Command \
+      "Expand-Archive -LiteralPath '$archive' -DestinationPath . -Force" ;;
+  *)
+    tar -xf "$archive" ;;
+esac
 chmod +x "$binname" 2>/dev/null || true
 bin="$workdir/$binname"
 

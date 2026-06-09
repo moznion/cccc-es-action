@@ -37,7 +37,12 @@ tag="$INPUT_VERSION"
 if [ -z "$tag" ] || [ "$tag" = latest ]; then
   api="https://api.github.com/repos/$repo/releases/latest"
   body=$(curl -fsSL "${auth[@]}" -H "X-GitHub-Api-Version: 2022-11-28" "$api")
-  tag=$(printf '%s' "$body" | grep -m1 '"tag_name"' \
+  # Feed grep from a here-string rather than `printf '%s' "$body" | grep -m1`.
+  # `grep -m1` exits as soon as it finds the first match and closes the pipe;
+  # the bash `printf` builtin, still writing the (large) body, then hits a
+  # "write error: Broken pipe" and exits non-zero, which under `set -o pipefail`
+  # fails the whole script. A here-string has no upstream writer to break.
+  tag=$(grep -m1 '"tag_name"' <<<"$body" \
     | sed -E 's/.*"tag_name"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/')
 fi
 if [ -z "$tag" ]; then

@@ -20,7 +20,7 @@ EOF
   export BIN="$FAKEBIN"
 
   # run.sh uses `set -u`, so every input must be defined (empty by default).
-  export INPUT_PATH="" INPUT_TABLE="" INPUT_EXT="" \
+  export INPUT_PATH="" INPUT_TABLE="" INPUT_EXT="" INPUT_EXCLUDE="" \
     INPUT_MAX_COGNITIVE="" INPUT_MAX_CYCLOMATIC="" INPUT_MIN="" \
     INPUT_TOP_COGNITIVE="" INPUT_TOP_CYCLOMATIC="" INPUT_NO_IGNORE="" \
     INPUT_JOBS="" INPUT_ARGS="" INPUT_OUTPUT_FILE=""
@@ -75,6 +75,45 @@ EOF
   [[ "$output" == *"ARG=src"* ]]
   [[ "$output" == *"ARG=lib"* ]]
   [[ "$output" == *"ARG=test"* ]]
+}
+
+@test "a single exclude glob becomes one --exclude option" {
+  export INPUT_EXCLUDE="dist/**" INPUT_PATH="src"
+  run bash "$RUN"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"ARG=--exclude"* ]]
+  [[ "$output" == *"ARG=dist/**"* ]]
+}
+
+@test "multiple exclude globs each get their own --exclude option" {
+  export INPUT_EXCLUDE=$'dist/**\n**/*.{test,spec}.ts' INPUT_PATH="src"
+  run bash "$RUN"
+  [ "$status" -eq 0 ]
+  # Two patterns -> the option name appears twice.
+  [ "$(grep -c 'ARG=--exclude' <<< "$output")" -eq 2 ]
+  [[ "$output" == *"ARG=dist/**"* ]]
+  [[ "$output" == *'ARG=**/*.{test,spec}.ts'* ]]
+}
+
+@test "an exclude pattern with a space is kept as a single argument" {
+  export INPUT_EXCLUDE="my dir/**" INPUT_PATH="src"
+  run bash "$RUN"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"ARG=my dir/**"* ]]
+}
+
+@test "blank lines in exclude are ignored" {
+  export INPUT_EXCLUDE=$'\ndist/**\n\n' INPUT_PATH="src"
+  run bash "$RUN"
+  [ "$status" -eq 0 ]
+  [ "$(grep -c 'ARG=--exclude' <<< "$output")" -eq 1 ]
+}
+
+@test "an empty exclude input adds no --exclude option" {
+  export INPUT_EXCLUDE="" INPUT_PATH="src"
+  run bash "$RUN"
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"ARG=--exclude"* ]]
 }
 
 @test "extra raw args are split and appended" {

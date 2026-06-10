@@ -19,6 +19,9 @@ Complexity** (McCabe) of TypeScript/JavaScript.
     path: src/
     max-cognitive: 15      # fail the job if any function exceeds this
     max-cyclomatic: 20
+    exclude: |             # one glob per line (repeatable)
+      dist/**
+      **/*.{test,spec}.ts
 ```
 
 ### Install only, then use the binary yourself
@@ -40,6 +43,7 @@ Complexity** (McCabe) of TypeScript/JavaScript.
 | `path` | _(empty)_ | Files/dirs to analyze. **Empty = install only** |
 | `table` | `false` | Human-readable table instead of JSON |
 | `ext` | | Comma-separated extensions to include |
+| `exclude` | | Glob patterns to exclude, one per line (e.g. `dist/**`) |
 | `max-cognitive` | | Fail if any function's cognitive complexity exceeds N |
 | `max-cyclomatic` | | Fail if any function's cyclomatic complexity exceeds N |
 | `min` | | Only report functions with complexity >= N |

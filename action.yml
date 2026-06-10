@@ -40,6 +40,13 @@ inputs:
     description: Comma-separated file extensions to include (overrides the default set).
     required: false
     default: ""
+  exclude:
+    description: >-
+      Glob patterns of files to exclude from analysis, one per line (repeatable).
+      Each pattern is matched against a file's path (e.g. "dist/**") and against
+      its file name alone (e.g. "*.test.ts", which then matches at any depth).
+    required: false
+    default: ""
   max-cognitive:
     description: Fail if any function's cognitive complexity exceeds this value.
     required: false
@@ -105,6 +112,7 @@ runs:
         INPUT_PATH: ${{ inputs.path }}
         INPUT_TABLE: ${{ inputs.table }}
         INPUT_EXT: ${{ inputs.ext }}
+        INPUT_EXCLUDE: ${{ inputs.exclude }}
         INPUT_MAX_COGNITIVE: ${{ inputs.max-cognitive }}
         INPUT_MAX_CYCLOMATIC: ${{ inputs.max-cyclomatic }}
         INPUT_MIN: ${{ inputs.min }}

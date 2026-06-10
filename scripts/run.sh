@@ -8,6 +8,7 @@
 #   INPUT_EXT / INPUT_MAX_COGNITIVE / INPUT_MAX_CYCLOMATIC /
 #   INPUT_MIN / INPUT_TOP_COGNITIVE / INPUT_TOP_CYCLOMATIC / INPUT_JOBS
 #                                                  Optional valued options.
+#   INPUT_EXCLUDE        Newline-separated glob patterns (repeatable option).
 #   INPUT_ARGS           Extra raw arguments appended verbatim.
 #   INPUT_OUTPUT_FILE    If set, also write output to this file.
 set -euo pipefail
@@ -15,10 +16,13 @@ set -euo pipefail
 args=()
 add_opt()  { if [ -n "$2" ];        then args+=("$1" "$2"); fi; }
 add_flag() { if [ "$2" = "true" ];  then args+=("$1");      fi; }
+# A repeatable option: emit `--name <value>` once per non-empty input line.
+add_multi() { while IFS= read -r v; do if [ -n "$v" ]; then args+=("$1" "$v"); fi; done <<< "$2"; }
 
-add_flag --table          "$INPUT_TABLE"
-add_flag --no-ignore      "$INPUT_NO_IGNORE"
-add_opt  --ext            "$INPUT_EXT"
+add_flag  --table         "$INPUT_TABLE"
+add_flag  --no-ignore     "$INPUT_NO_IGNORE"
+add_opt   --ext           "$INPUT_EXT"
+add_multi --exclude       "$INPUT_EXCLUDE"
 add_opt  --max-cognitive  "$INPUT_MAX_COGNITIVE"
 add_opt  --max-cyclomatic "$INPUT_MAX_CYCLOMATIC"
 add_opt  --min            "$INPUT_MIN"

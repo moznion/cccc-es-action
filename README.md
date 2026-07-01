@@ -1,3 +1,7 @@
+# DEPRECATED
+
+This action is no longer available. Please use [cccc-action](https://github.com/moznion/cccc-action) instead.
+
 # cccc-es-action
 
 A GitHub composite action that installs the
